@@ -9,9 +9,9 @@ code Harvard-tutoring
 and then open `src/meetings/basics.lean` (use `ctrl + P` and type `basics` to find this file).
 
 ### Agenda
-- Notation of Lean
+- Lean and type theory
 - Logic in Lean
-- Some tactics
+- Some useful tactics
 
 There will be no new mathematical content, but we will just learn how to communicate your intentions to Lean
 -/
@@ -194,5 +194,8 @@ example (x y z : ℝ) (h1 : 2 * x ≤ 2 * y) (h2 : y ≤ z) : x < z + 7 :=
 sorry
 
 
-/- For exercises, run `leanproject get tutorials` in the terminal, and open the project using `code tutorials`. Then you can solve the exercises about logic.
-(The files that start with `02_`, `03_` and `04_`. -/
+/- For exercises, run `leanproject get tutorials` in the terminal, and open the project using `code tutorials`.
+You can solve the exercises about logic.
+(The files that start with `02_`, `03_` and `04_`).
+If you want, you can start with `00_` that shows some Lean tactics or
+`01_` to do equational reasoning (similar to the Natural Number Game) -/
