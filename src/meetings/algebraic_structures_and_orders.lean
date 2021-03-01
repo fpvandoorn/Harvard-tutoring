@@ -11,7 +11,9 @@ leanproject get fpvandoorn/Harvard-tutoring
 cp -r Harvard-tutoring/src/exercises/ Harvard-tutoring/src/my_exercises
 code Harvard-tutoring
 ```
-For today, the exercises are in the files `my_exercises/algebraic_hierarchy.lean` and `my_exercises/order.lean`
+For this week, the exercises are in the files `my_exercises/algebraic_hierarchy.lean` and `my_exercises/order.lean`.
+
+Also this week, think about a project you would like to formalize in Lean for the remaining weeks, and discuss it during your weekly meeting with your tutor.
 -/
 
 
@@ -26,6 +28,10 @@ Similarly `[has_one G]` gives you `(1 : G)`
 and `[has_inv G]` gives you a map `(λ g, g⁻¹ : G → G)`
 -/
 
+#print has_mul
+
+example {G : Type} [has_mul G] (g h : G) : g * h = h * g :=
+sorry -- this is false
 
 /-
 ## Groups
@@ -39,7 +45,7 @@ class my_group (G : Type) extends has_mul G, has_one G, has_inv G :=
 /-
 Advantages of this approach: axioms look lovely.
 
-Disadvantage: what if I want the group law to be `+`?? I have embedded `has_mul`
+Disadvantage: what if I want the group law to be `+`? I have embedded `has_mul`
 in the definition.
 -/
 
@@ -55,16 +61,18 @@ class my_add_group (G : Type) extends has_add G, has_zero G, has_neg G :=
 (zero_add : ∀ (a : G), 0 + a = a)
 (add_left_neg : ∀ (a : G), -a + a = 0)
 
+attribute [to_additive] my_group
+
 /-
 Lean's solution: develop a `to_additive` metaprogram which translates all theorems about
 `group`s (with group law `*`) to theorems about `add_group`s (with group law `+`).
 -/
 
+#print my_group.one_mul
+
 namespace my_group
 
--- let G be a group
-
-variables {G : Type} [my_group G]
+#print one_mul
 
 /-
 We can now prove more theorems about `my_group`, such as the following:
@@ -75,24 +83,42 @@ We can now prove more theorems about `my_group`, such as the following:
 `mul_right_inv (a : G) : a * a⁻¹ = 1`
 -/
 
-lemma mul_left_cancel (a b c : G) (Habac : a * b = a * c) : b = c :=
-calc b = 1 * b         : by sorry
-   ... = (a⁻¹ * a) * b : by sorry
-   ... = a⁻¹ * (a * b) : by sorry
+@[to_additive] lemma mul_left_cancel {G : Type} [my_group G] (a b c : G)
+  (Habac : a * b = a * c) : b = c :=
+calc b = 1 * b         : by rw one_mul
+   ... = (a⁻¹ * a) * b : by rw mul_left_inv
+   ... = a⁻¹ * (a * b) : by rw mul_assoc
    ... = a⁻¹ * (a * c) : by sorry
    ... = (a⁻¹ * a) * c : by sorry
    ... = 1 * c         : by sorry
    ... = c             : by sorry
 
+#check @my_group.mul_left_cancel
+#check @my_add_group.add_left_cancel
+
+variables (x y : ℚ)
+
+example : x * y + y = y * (x + 1) :=
+by { rw mul_comm, ring }
+
+#check @mul_eq_of_eq_inv_mul
+
 -- Abstract example of the power of classes: we can define products of groups with instances
 
+attribute [simp] mul_assoc one_mul mul_left_inv
+
 instance (G : Type) [my_group G] (H : Type) [my_group H] : my_group (G × H) :=
-sorry
+{ mul := λ gh gh', (gh.1 * gh'.1, gh.2 * gh'.2),
+  one := (1, 1),
+  inv := λ gh, (gh.1⁻¹, gh.2⁻¹),
+  mul_assoc := by { intros a b c, cases c, cases b, cases a, dsimp at *, simp at * },
+  one_mul := by tidy,
+  mul_left_inv := by tidy }
 
 -- the type class inference system now knows that products of groups are groups
 
 example (G H K : Type) [my_group G] [my_group H] [my_group K] : my_group (G × H × K) :=
-by apply_instance
+by { apply_instance }
 
 end my_group
 
@@ -111,7 +137,7 @@ attribute [derive decidable_eq] mu2
 
 -- 2) prove it is finite
 instance : fintype mu2 :=
-⟨⟨[mu2.p1, mu2.m1], dec_trivial⟩, λ x, by cases x; dec_trivial⟩
+⟨⟨[mu2.p1, mu2.m1], dec_trivial⟩, λ x, by { cases x; exact dec_trivial, }⟩
 
 -- Define multiplication by doing all cases
 def mul : mu2 → mu2 → mu2
@@ -123,7 +149,8 @@ def mul : mu2 → mu2 → mu2
 -- now let's make it a group
 instance : my_group mu2 :=
 begin
-  sorry
+  refine { mul := mu2.mul, one := p1, inv := id, .. },
+  all_goals {exact dec_trivial},
 end
 
 end mu2
@@ -135,6 +162,8 @@ class my_monoid (M : Type) extends has_mul M, has_one M :=
 (mul_assoc : ∀ (a b c : M), a * b * c = a * (b * c))
 (one_mul : ∀ (a : M), 1 * a = a)
 (mul_one : ∀ (a : M), a * 1 = a)
+
+#print monoid
 
 -- rings are additive abelian groups and multiplicative monoids,
 -- with distributivity
@@ -202,18 +231,18 @@ instance : my_field ℚ :=
 /- Some tactics that will help: -/
 
 example {G : Type} [group G] (a b c d : G) :
- ((a * b)⁻¹ * a * 1⁻¹⁻¹⁻¹ * (b * b⁻¹) * 1 * c)⁻¹ =
+ ((a * b)⁻¹ * a * 1⁻¹⁻¹⁻¹ * b * b⁻¹ * 1 * c)⁻¹ =
  (c⁻¹⁻¹ * (d * d⁻¹ * 1⁻¹⁻¹) * c⁻¹ * c⁻¹⁻¹⁻¹ * b)⁻¹⁻¹ :=
-by sorry
+by simp
 
 example {G : Type} [add_comm_group G] (a b : G) : (a + b) - ((b + a) + a) = -a :=
-by sorry
+by abel -- rewriting in abelian groups
 
 example {R : Type} [comm_ring R] (a b : R) : (a + b) * (a - b) = a ^ 2 - b ^ 2 :=
-by sorry
+by ring -- rewriting in commutative rings
 
 example {F : Type} [field F] (a b : F) (h : a ≠ 0) : (a + b) / a = 1 + b / a :=
-by sorry
+by field_simp -- rewriting fractions in fields
 
 
 
@@ -265,7 +294,7 @@ end
 @[ext] theorem ext {H J : my_subgroup G} (h : ∀ (x : G), x ∈ H.carrier ↔ x ∈ J.carrier) :
   H = J :=
 begin
-  sorry
+  apply carrier_injective, ext, apply h,
 end
 
 -- We also want the `iff` version of this.
@@ -289,9 +318,9 @@ instance : partial_order (my_subgroup G) :=
 
 -- We can give a second construction using `partial_order.lift`:
 example : partial_order (my_subgroup G) :=
-sorry
+partial_order.lift my_subgroup.carrier carrier_injective
 
-example {H J : my_subgroup G} (h : H < J) : H ≤ J := sorry
+example {H J : my_subgroup G} (h : H < J) : H ≤ J := h.le
 
 /-
 ## From partial orders to lattices.
@@ -370,9 +399,9 @@ First we show we can form arbitrary intersections.
 -/
 
 def Inf (S : set (my_subgroup G)) : my_subgroup G :=
-{ carrier := ⋂ (H : my_subgroup G), H.carrier,
+{ carrier := ⋂ K ∈ S, (K : my_subgroup G).carrier,
   mul_mem :=  begin
-    sorry
+    intros a b ha hb, simp at *, intros K hK, apply my_subgroup.mul_mem, tidy
   end,
   one_mem := begin
     sorry
@@ -476,6 +505,7 @@ example : complete_lattice (set G) := by apply_instance
 -- a theorem about Galois insertions. Again, I don't use `instance`
 -- because we already made the instance above.
 
-example : complete_lattice (my_subgroup G) := galois_insertion.lift_complete_lattice gi_my_subgroup
+example : complete_lattice (my_subgroup G) :=
+galois_insertion.lift_complete_lattice gi_my_subgroup
 
 end my_subgroup
