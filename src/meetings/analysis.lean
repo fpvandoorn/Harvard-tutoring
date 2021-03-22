@@ -13,6 +13,11 @@ example : deriv (λ x : ℝ, x^2) 2 = 4 := by norm_num
 
 example (x : ℝ) : deriv cos x = - sin x := by simp
 
+example (x : ℝ) : 
+  deriv (λ x, 2 * cos (cos x + 3) + 3) x = 
+  2 * (sin (cos x + 3) * sin x) := 
+by simp
+
 
 
 example : ∫ x : ℝ in 0..2, x ^ 3 = 4 := by norm_num
@@ -32,6 +37,7 @@ Definitions in calculus:
 1-dimensional calculus:
 * Fundamental theorem of calculus
 * L'Hôpital's rule
+* Intermediate value theorem
 
 Results in multivariable calculus:
 * Implicit function theorem
@@ -82,8 +88,10 @@ In other words:
 #check @deriv
 
 
-
-/- As an example, here are the statements of the mean value theorem and one version of l'Hôpital's rule for functions `ℝ → ℝ` -/
+open filter
+/- As an example, here are the statements of the mean value theorem and one version of l'Hôpital's rule for functions `ℝ → ℝ` 
+`Icc a b` is `[a, b]`
+`Ico a b` is `[a, b)` -/
 #check exists_has_deriv_at_eq_slope
 #check @has_deriv_at.lhopital_zero_nhds
 
@@ -134,7 +142,10 @@ example {X : Type*} [measurable_space X]
  ∫ x in A, f x ∂μ = ∫ x, f x ∂(μ.restrict A) := 
 by refl
 
-/- The interval integral `∫ x in a..b, f x ∂μ` is defined to be the integral on `(a,b]` if `a ≤ b`. -/
+-- (μ.restrict A)(B) = μ (A ∩ B)
+
+/- The interval integral `∫ x in a..b, f x ∂μ` is defined to be the integral on `(a,b]` if `a ≤ b`. 
+-/
 #check @interval_integral.integral_of_le
 #check @interval_integral.integral_symm
 
